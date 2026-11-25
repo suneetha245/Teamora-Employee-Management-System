@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { Eye, EyeOff, ShieldCheck, UserRound } from 'lucide-react';
+import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Logo from '../components/Logo';
 import Spinner from '../components/Spinner';
@@ -11,19 +11,23 @@ import { LOGIN_IMAGE } from '../config';
 export default function Login() {
   const { user, login } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: '', password: '', role: 'hr', remember: false });
+  const [form, setForm] = useState({ email: '', password: '', role: 'hr' });
   const [show, setShow] = useState(false);
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
 
   if (user) return <Navigate to={homeFor(user.role)} replace />;
 
-  const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+  const set = (k) => (e) => {
+    setForm((f) => ({ ...f, [k]: e.target.value }));
+    setErrors((current) => ({ ...current, [k]: undefined }));
+  };
 
   const submit = async (e) => {
     e.preventDefault();
     const errs = {};
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Enter a valid email address';
+    if (!form.email.trim()) errs.email = 'Enter an email ID';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errs.email = 'Enter a valid email address';
     if (!form.password) errs.password = 'Enter your password';
     setErrors(errs);
     if (Object.keys(errs).length) return;
@@ -59,8 +63,8 @@ export default function Login() {
           <p className="desc">Sign in to your Teamora workspace to continue.</p>
 
           <div className="role-switch" role="radiogroup" aria-label="Sign in as">
-            <button type="button" role="radio" aria-checked={form.role === 'hr'} className={form.role === 'hr' ? 'on' : ''} onClick={() => setForm((f) => ({ ...f, role: 'hr' }))}><ShieldCheck size={17} />HR/Admin</button>
-            <button type="button" role="radio" aria-checked={form.role === 'employee'} className={form.role === 'employee' ? 'on' : ''} onClick={() => setForm((f) => ({ ...f, role: 'employee' }))}><UserRound size={17} />Employee</button>
+            <button type="button" role="radio" aria-checked={form.role === 'hr'} className={form.role === 'hr' ? 'on' : ''} onClick={() => setForm((f) => ({ ...f, role: 'hr' }))}>HR/Admin</button>
+            <button type="button" role="radio" aria-checked={form.role === 'employee'} className={form.role === 'employee' ? 'on' : ''} onClick={() => setForm((f) => ({ ...f, role: 'employee' }))}>Employee</button>
           </div>
 
           <div className="stack" style={{ gap: 16 }}>
@@ -79,8 +83,7 @@ export default function Login() {
             </div>
           </div>
 
-          <div className="login-row">
-            <label className="checkbox"><input type="checkbox" checked={form.remember} onChange={set('remember')} />Remember me</label>
+          <div className="login-row" style={{ justifyContent: 'flex-end' }}>
             <a href="#forgot" onClick={(e) => { e.preventDefault(); toast.info(form.role === 'hr' ? 'The HR/Admin password is handled by the administration team. Please contact your administrator.' : 'Please contact your HR team to know your password.'); }}>Forgot password?</a>
           </div>
 

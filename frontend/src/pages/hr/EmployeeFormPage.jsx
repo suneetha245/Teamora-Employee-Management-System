@@ -12,12 +12,28 @@ const EMPTY = { fullName: '', email: '', phone: '', gender: '', department: '', 
 
 function validate(f) {
   const e = {};
-  if (f.fullName.trim().length < 2) e.fullName = 'Enter the employee’s full name';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim())) e.email = 'Enter a valid email address';
-  if (!/^\+?[0-9][0-9\s-]{6,14}$/.test(f.phone.trim())) e.phone = 'Enter a valid phone number (7–15 digits)';
+  const fullName = f.fullName.trim();
+  if (fullName.length < 2 || !/\p{L}/u.test(fullName)) e.fullName = 'Enter a name with at least 2 characters';
+  else if (fullName.length > 100) e.fullName = 'Name must be 100 characters or fewer';
+  else if (!/^[\p{L}\p{M} .'-]+$/u.test(fullName)) e.fullName = 'Use letters, spaces, apostrophes, periods or hyphens only';
+  const email = f.email.trim();
+  if (!email) e.email = 'Enter an email address';
+  else if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) e.email = 'Enter a valid email address';
+  const phone = f.phone.trim();
+  if (!phone) e.phone = 'Enter a phone number';
+  else if (!/^\+?[0-9]{7,15}$/.test(phone)) e.phone = 'Enter 7–15 digits, with an optional + at the beginning';
   if (!f.department) e.department = 'Select a department';
-  if (!f.designation.trim()) e.designation = 'Designation is required';
-  if (!f.dateOfJoining) e.dateOfJoining = 'Select the joining date';
+  const designation = f.designation.trim();
+  if (!designation) e.designation = 'Enter a designation';
+  else if (designation.length < 2) e.designation = 'Designation must be at least 2 characters';
+  else if (/\p{N}/u.test(designation)) e.designation = 'Designation cannot contain numbers';
+  else if (designation.length > 100) e.designation = 'Designation must be 100 characters or fewer';
+  const date = f.dateOfJoining;
+  const parsedDate = new Date(`${date}T00:00:00Z`);
+  if (!date) e.dateOfJoining = 'Select a joining date';
+  else if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) e.dateOfJoining = 'Enter a valid joining date';
+  if (!STATUSES.includes(f.status)) e.status = 'Select an employment status';
+  if (f.gender && !['Male', 'Female', 'Other'].includes(f.gender)) e.gender = 'Select a valid gender or leave it blank';
   return e;
 }
 
@@ -48,7 +64,16 @@ export default function EmployeeFormPage() {
     }).catch((err) => { toast.error(errMsg(err)); navigate('/hr/employees'); }).finally(() => setLoading(false));
   }, [id, editing, navigate]);
 
-  const set = (k) => (e) => { setForm((f) => ({ ...f, [k]: e.target.value })); setErrors((x) => ({ ...x, [k]: undefined })); };
+  const set = (k) => (e) => {
+    let value = e.target.value;
+    if (['fullName', 'designation'].includes(k)) value = value.replace(/\p{N}/gu, '');
+    if (k === 'phone') {
+      const hasLeadingPlus = value.startsWith('+');
+      value = `${hasLeadingPlus ? '+' : ''}${value.replace(/\D/g, '')}`;
+    }
+    setForm((f) => ({ ...f, [k]: value }));
+    setErrors((x) => ({ ...x, [k]: undefined }));
+  };
 
   const pickPhoto = (e) => {
     const file = e.target.files[0];
@@ -133,14 +158,15 @@ export default function EmployeeFormPage() {
             <input id="employee-password" className="input" value={employeeId || 'Generated automatically on save'} disabled />
             <span className="hint">Automatically generated to match the employee ID on save.</span>
           </div>}
-          {text('fullName', 'Full name', { placeholder: 'e.g. Priya Menon', autoComplete: 'off' })}
-          {text('email', 'Email address', { type: 'email', placeholder: 'name@company.com', autoComplete: 'off' })}
-          {text('phone', 'Phone number', { placeholder: '+91 98765 43210', autoComplete: 'off' })}
+          {text('fullName', 'Full name', { placeholder: 'e.g. Priya Menon', autoComplete: 'off', maxLength: 100 })}
+          {text('email', 'Email address', { type: 'email', placeholder: 'name@company.com', autoComplete: 'off', maxLength: 254 })}
+          {text('phone', 'Phone number', { placeholder: 'e.g. +919876543210', autoComplete: 'off', maxLength: 16, inputMode: 'tel' })}
           <div className="field">
             <label htmlFor="gender">Gender <span className="hint">(optional)</span></label>
-            <select id="gender" className="select" value={form.gender} onChange={set('gender')}>
+            <select id="gender" className={`select ${errors.gender ? 'invalid' : ''}`} value={form.gender} onChange={set('gender')}>
               <option value="">Prefer not to say</option><option>Male</option><option>Female</option><option>Other</option>
             </select>
+            {errors.gender && <span className="field-error">{errors.gender}</span>}
           </div>
           <div className="field">
             <label htmlFor="department">Department</label>
@@ -150,11 +176,12 @@ export default function EmployeeFormPage() {
             </select>
             {errors.department && <span className="field-error">{errors.department}</span>}
           </div>
-          {text('designation', 'Designation', { placeholder: 'e.g. Software Engineer' })}
+          {text('designation', 'Designation', { placeholder: 'e.g. Software Engineer', maxLength: 100 })}
           {text('dateOfJoining', 'Date of joining', { type: 'date' })}
           <div className="field">
             <label htmlFor="status">Employment status</label>
-            <select id="status" className="select" value={form.status} onChange={set('status')}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
+            <select id="status" className={`select ${errors.status ? 'invalid' : ''}`} value={form.status} onChange={set('status')}>{STATUSES.map((s) => <option key={s}>{s}</option>)}</select>
+            {errors.status && <span className="field-error">{errors.status}</span>}
           </div>
         </div>
 

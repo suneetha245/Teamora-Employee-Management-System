@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Download, Share2 } from 'lucide-react';
+import { Download } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Spinner from '../../components/Spinner';
 import StatusBadge from '../../components/StatusBadge';
@@ -42,22 +42,6 @@ export default function Reports() {
     }
   };
 
-  const share = async () => {
-    setBusy('share');
-    try {
-      const file = await build();
-      if (navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title: 'Teamora employee report' });
-      } else {
-        toast.info('Sharing isn’t supported in this browser. Download the file and share it from there.');
-      }
-    } catch (e) {
-      if (e.name !== 'AbortError') toast.error(errMsg(e));
-    } finally {
-      setBusy('');
-    }
-  };
-
   return (
     <>
       <div className="page-head"><div><h1>Reports & Export</h1><p>Preview employee data and export it to Excel.</p></div></div>
@@ -72,7 +56,6 @@ export default function Reports() {
             <span className="hint">{report ? `${report.total} employee${report.total === 1 ? '' : 's'}` : ''}</span>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <button className="btn btn-ghost" onClick={share} disabled={!!busy || !report?.total}>{busy === 'share' ? <Spinner small /> : <Share2 size={16} />}Share</button>
             <button className="btn btn-primary" onClick={download} disabled={!!busy || !report?.total}>{busy === 'download' ? <Spinner small /> : <Download size={16} />}Download Excel</button>
           </div>
         </div>

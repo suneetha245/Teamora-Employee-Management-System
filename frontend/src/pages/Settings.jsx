@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useAuth } from '../context/AuthContext';
 import { authApi, errMsg } from '../services/api';
@@ -8,6 +9,7 @@ export default function Settings() {
   const { user } = useAuth();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirm: '' });
   const [errors, setErrors] = useState({});
+  const [visible, setVisible] = useState({});
   const [busy, setBusy] = useState(false);
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -35,7 +37,12 @@ export default function Settings() {
   const field = (k, label) => (
     <div className="field" key={k}>
       <label htmlFor={k}>{label}</label>
-      <input id={k} type="password" className={`input ${errors[k] ? 'invalid' : ''}`} value={form[k]} onChange={set(k)} autoComplete={k === 'currentPassword' ? 'current-password' : 'new-password'} />
+      <div className="input-wrap">
+        <input id={k} type={visible[k] ? 'text' : 'password'} className={`input ${errors[k] ? 'invalid' : ''}`} value={form[k]} onChange={set(k)} autoComplete={k === 'currentPassword' ? 'current-password' : 'new-password'} />
+        <button type="button" className="icon-btn" onClick={() => setVisible((v) => ({ ...v, [k]: !v[k] }))} aria-label={visible[k] ? `Hide ${label.toLowerCase()}` : `Show ${label.toLowerCase()}`}>
+          {visible[k] ? <EyeOff size={18} /> : <Eye size={18} />}
+        </button>
+      </div>
       {errors[k] && <span className="field-error">{errors[k]}</span>}
     </div>
   );
